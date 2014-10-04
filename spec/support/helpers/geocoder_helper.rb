@@ -1,14 +1,14 @@
 module GeocoderHelper
-  def stub_geocoding_request(*strings, latitude, longitude)
-    strings.each do |string|
-      FakeGeocoder[string] = [latitude, longitude]
-    end
-    Place.geocoding_service = FakeGeocoder
-  end
-end
+  def stub_geocoding_request(address, latitude, longitude)
+    Geocoder.configure(lookup: :test)
 
-RSpec.configure do |config|
-  config.around(:each) do
-    FakeGeocoder.clear
+    Geocoder::Lookup::Test.add_stub(
+      address, [
+        {
+          'latitude'  => latitude,
+          'longitude' => longitude
+        }
+      ]
+    )
   end
 end

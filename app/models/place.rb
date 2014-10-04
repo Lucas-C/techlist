@@ -1,11 +1,18 @@
 class Place < ActiveRecord::Base
   KINDS = ['school', 'lab', 'company', 'media', 'accelerator', 'incubator', 'coworking', 'investor', 'nonprofit', 'cluster']
 
+  class_attribute :geocoding_service
+  self.geocoding_service = Geocoder
+
   validates :name, presence: true
   validates :state, presence: true
   validates :kind, presence: true, inclusion: { in: KINDS }
   validates :latitude, presence: true, numericality: true
   validates :longitude, presence: true, numericality: true
+
+  geocoded_by :full_address
+
+  after_validation :set_coordinates, if: :missing_coordinates?
 
   include AASM
   aasm column: 'state' do
@@ -56,5 +63,19 @@ class Place < ActiveRecord::Base
 
   def state_enum
     aasm.states
+  end
+
+  def full_address
+    [address, zip_code, city].compact.join(', ')
+  end
+
+  private
+
+  def missing_coordinates?
+    latitude.blank? || longitude.blank?
+  end
+
+  def set_coordinates
+    self.latitude, self.longitude = geocoding_service.coordinates(full_address)
   end
 end
